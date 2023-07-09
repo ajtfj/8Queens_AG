@@ -119,7 +119,7 @@ class EightQueens:
             return score[0]
         return None
 
-def run(eightQueens: EightQueens):
+def find_solution(eightQueens: EightQueens):
     eightQueens.generate_population(100)
     population_fitness = eightQueens.score()
     solution = eightQueens.solution()
@@ -141,7 +141,7 @@ def run(eightQueens: EightQueens):
 
     return totalConverged, evaluation, best_fitness_history, average_fitness_history
 
-def find_all(eightQueens: EightQueens, evaluation=0, best_fitness_history=[], average_fitness_history=[]):
+def converge_all(eightQueens: EightQueens, evaluation:int, best_fitness_history:list[float], average_fitness_history:list[float]):
     population_fitness = eightQueens.score()
 
     while population_fitness[-1][1] < 1.0:
@@ -149,6 +149,8 @@ def find_all(eightQueens: EightQueens, evaluation=0, best_fitness_history=[], av
         children = eightQueens.cut_and_crossfill(parents)
         eightQueens.survivors_select(children)
         population_fitness = eightQueens.score()
+        best_fitness_history.append(population_fitness[0][1])
+        average_fitness_history.append(np.mean(list(map(lambda x: x[1], population_fitness))))
         evaluation += 1
     
-    return evaluation
+    return evaluation, best_fitness_history, average_fitness_history
