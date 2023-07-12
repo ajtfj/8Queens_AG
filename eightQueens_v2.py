@@ -1,12 +1,11 @@
 import random
 import numpy as np
-import matplotlib.pyplot as plt
 
 class EightQueens:
     population = []
 
-    def __init__(self) -> None:
-        pass
+    def __init__(self, population_size) -> None:
+        self.population_size = population_size
 
     def fenotype_to_chromosome(self, fenotype: list[int]):
         chromosome = ''
@@ -62,23 +61,28 @@ class EightQueens:
             child = child[:a] + child[b:b+3] + child[a+3:b] + child[a:a+3] + child[b+3:]
             return child
 
-    def generate_population(self, size: int):
+    def generate_population(self):
         self.population = []
         fenotype = [0,1,2,3,4,5,6,7]
 
-        for _ in range(size):
+        for _ in range(self.population_size):
             random.shuffle(fenotype)
             chromosome = self.fenotype_to_chromosome(fenotype)
             self.population.append(chromosome)
 
     def select_parents(self, population: list[list[str|float|int]]):
-        positions = random.sample(range(len(self.population)), 5)
-        parents = []
-        for position in positions:
-            parents.append(population[position])
-        parents.sort(key=lambda tup: tup[1], reverse=True)
-        selected_parents = parents[:2]
-        return list(map(lambda tup: tup[0], selected_parents))
+        total_fitness = sum([individual[1] for individual in population])
+        probabilities = [individual[1] / total_fitness for individual in population]
+        selected = []
+        for _ in range(2):
+            pick = random.uniform(0, 1)
+            current = 0
+            for i, individual in enumerate(population):
+                current += probabilities[i]
+                if pick < current:
+                    selected.append(individual)
+                    break
+        return list(map(lambda tup: tup[0], selected))
 
     def calcule_fitness(self, chromosome: str):
         fenotype = self.chromosome_to_fenotype(chromosome)
@@ -119,8 +123,8 @@ class EightQueens:
             return score[0]
         return None
 
-def run(eightQueens: EightQueens):
-    eightQueens.generate_population(100)
+def find_solution(eightQueens: EightQueens):
+    eightQueens.generate_population()
     population_fitness = eightQueens.score()
     solution = eightQueens.solution()
     evaluation = 0
@@ -129,7 +133,9 @@ def run(eightQueens: EightQueens):
 
     while solution == None and evaluation < 10000:
         parents = eightQueens.select_parents(population_fitness)
-        children = eightQueens.cut_and_crossfill(parents)
+        children = []
+        for _ in range(5):
+            children.extend(eightQueens.cut_and_crossfill(parents))
         eightQueens.survivors_select(children)
         population_fitness = eightQueens.score()
         solution = eightQueens.solution()
@@ -141,7 +147,7 @@ def run(eightQueens: EightQueens):
 
     return totalConverged, evaluation, best_fitness_history, average_fitness_history
 
-def find_all(eightQueens: EightQueens, evaluation=0):
+def converge_all(eightQueens: EightQueens, evaluation:int, best_fitness_history:list[float], average_fitness_history:list[float]):
     population_fitness = eightQueens.score()
 
     while population_fitness[-1][1] < 1.0:
@@ -149,6 +155,8 @@ def find_all(eightQueens: EightQueens, evaluation=0):
         children = eightQueens.cut_and_crossfill(parents)
         eightQueens.survivors_select(children)
         population_fitness = eightQueens.score()
+        best_fitness_history.append(population_fitness[0][1])
+        average_fitness_history.append(np.mean(list(map(lambda x: x[1], population_fitness))))
         evaluation += 1
     
-    return evaluation
+    return evaluation, best_fitness_history, average_fitness_history
